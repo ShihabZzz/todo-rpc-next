@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
 import { cors } from "hono/cors";
 import { eq } from "drizzle-orm";
 import { prettyJSON } from "hono/pretty-json";
@@ -11,6 +12,7 @@ import {
   hasInvalidkeys,
   titleValidation,
   statusValidation,
+  todoValidation,
 } from "../utils";
 
 const app = new Hono()
@@ -120,71 +122,54 @@ const app = new Hono()
       return c.json({ message: "Internal Server Error" }, 500);
     }
   })
-  .put("/:user/todos/:id", async (c) => {
-    try {
-      const user = c.req.param("user");
-      const id = c.req.param("id");
-      const body = await c.req.json();
-      const userExist = await findUser(user);
-      const todoExist = await findByTodoID(id);
-      if (!userExist || !todoExist) {
-        return c.json({ message: "Todo not found" }, 404);
-      }
-      const bodyKeys = Object.keys(body);
-      const validations = [
-        {
-          valid: !hasInvalidkeys(bodyKeys) && bodyKeys.length > 0,
-          message: "Invalid request body",
-        },
-        {
-          valid:
-            !bodyKeys.includes("title") ||
-            titleValidation.safeParse(body.title).success,
-          message: titleValidation.safeParse(body.title).error?.errors[0]
-            .message,
-        },
-        {
-          valid: statusValidation.safeParse(body.status).success,
-          message: statusValidation.safeParse(body.status).error?.errors[0]
-            .message,
-        },
-      ];
-      for (const validation of validations) {
-        if (!validation.valid) {
-          return c.json({ message: validation.message }, 400);
+  .put(
+    "/:user/todos/:id",
+    zValidator("json", todoValidation, (result, c) => {
+      if (!result.success)
+        return c.json({ message: result.error.issues[0].message }, 400);
+    }),
+    async (c) => {
+      try {
+        const user = c.req.param("user");
+        const id = c.req.param("id");
+        const body = await c.req.json();
+        const userExist = await findUser(user);
+        const todoExist = await findByTodoID(id);
+        if (!userExist || !todoExist) {
+          return c.json({ message: "Todo not found" }, 404);
         }
+        const oldTodo = await db
+          .select()
+          .from(todosTable)
+          .where(eq(todosTable.id, id));
+        await db
+          .update(todosTable)
+          .set({
+            ...oldTodo,
+            ...body,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(todosTable.id, id))
+          .execute();
+        const todo = await db
+          .select({
+            id: todosTable.id,
+            title: todosTable.title,
+            status: todosTable.status,
+            createdAt: todosTable.createdAt,
+            updatedAt: todosTable.updatedAt,
+          })
+          .from(todosTable)
+          .where(eq(todosTable.id, id));
+        return c.json({ message: "Todo updated", todo }, 200);
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          return c.json({ message: "Failed to parse JSON" }, 400);
+        }
+        return c.json({ message: "Internal Server Error" }, 500);
       }
-      const oldTodo = await db
-        .select()
-        .from(todosTable)
-        .where(eq(todosTable.id, id));
-      await db
-        .update(todosTable)
-        .set({
-          ...oldTodo,
-          ...body,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(todosTable.id, id))
-        .execute();
-      const todo = await db
-        .select({
-          id: todosTable.id,
-          title: todosTable.title,
-          status: todosTable.status,
-          createdAt: todosTable.createdAt,
-          updatedAt: todosTable.updatedAt,
-        })
-        .from(todosTable)
-        .where(eq(todosTable.id, id));
-      return c.json({ message: "Todo updated", todo }, 200);
-    } catch (error) {
-      if (error instanceof SyntaxError) {
-        return c.json({ message: "Failed to parse JSON" }, 400);
-      }
-      return c.json({ message: "Internal Server Error" }, 500);
-    }
-  })
+    },
+  )
   .delete("/:user/todos/:id", async (c) => {
     try {
       const user = c.req.param("user");

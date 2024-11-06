@@ -37,3 +37,34 @@ export const statusValidation = z
     message: "status must be valid string type",
   })
   .optional();
+
+export const todoValidation = z
+  .object({
+    title: z
+      .string()
+      .min(3, { message: "title must be at least 3 characters" })
+      .max(100, { message: "title must not exceed 100 characters" })
+      .refine((title) => title.trim() !== "" && isNaN(Number(title)), {
+        message: "title must be a valid string type",
+      })
+      .optional(),
+    status: z
+      .string()
+      .min(3, { message: "status must be at least 3 characters" })
+      .max(50, { message: "status must not exceed 50 characters" })
+      .refine((status) => status.trim() !== "", {
+        message: "status must be a valid string type",
+      })
+      .refine(
+        (status) =>
+          status === "todo" || status === "pending" || status === "completed",
+        {
+          message: "status must be either pending or completed",
+        },
+      )
+      .optional(),
+  })
+  .strict({ message: "Only 'title' and 'status' keys are allowed." })
+  .refine((obj) => obj.title || obj.status, {
+    message: "Either 'title' or 'status' is required.",
+  });

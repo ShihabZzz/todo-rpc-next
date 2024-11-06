@@ -22,21 +22,13 @@ TodoAPI is a simple RESTful API for managing todo items. It allows users to crea
 - Turso SQLite
 
 ### Installation
-
-1. Clone the repository
-
-2. Install the dependencies:
-    ```sh
-    npm install
-    ```
-
-3. Create a .env file in the root of project and add your Turso database url and auth token
+1. Create a .env file in the root of project and add your Turso database url and auth token
     ```sh
     TURSO_DATABASE_URL=
     TURSO_AUTH_TOKEN=
     ```
 
-4. Start the server:
+2. Start the server:
     ```sh
     npm run dev
     ```

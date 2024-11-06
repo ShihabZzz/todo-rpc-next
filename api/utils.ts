@@ -68,3 +68,7 @@ export const todoValidation = z
   .refine((obj) => obj.title || obj.status, {
     message: "Either 'title' or 'status' is required.",
   });
+
+  export const todoPostValidation = todoValidation.refine((obj) => obj.title, {
+    message: "title is required",
+  });

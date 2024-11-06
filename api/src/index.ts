@@ -13,6 +13,7 @@ import {
   titleValidation,
   statusValidation,
   todoValidation,
+  todoPostValidation,
 } from "../utils";
 
 const app = new Hono()
@@ -72,56 +73,40 @@ const app = new Hono()
       return c.json({ message: "Internal Server Error" }, 500);
     }
   })
-  .post("/:user/todos", async (c) => {
-    try {
-      const user = c.req.param("user");
-      const body = await c.req.json();
-      const bodyKeys = Object.keys(body);
-      if (hasInvalidkeys(bodyKeys)) {
-        return c.json(
-          {
-            message: "Invalid request body",
-          },
-          400,
-        );
+  .post(
+    "/:user/todos",
+    zValidator("json", todoPostValidation, (result, c) => {
+      if (!result.success)
+        return c.json({ message: result.error.issues[0].message }, 400);
+    }),
+    async (c) => {
+      try {
+        const user = c.req.param("user");
+        const body = await c.req.json();
+        const todo = {
+          title: body.title,
+          id: crypto.randomUUID(),
+          status: body.status || "todo",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        const userExist = await findUser(user);
+        if (!userExist) {
+          await db.insert(usersTable).values({ user }).execute();
+        }
+        await db
+          .insert(todosTable)
+          .values({ ...todo, user })
+          .execute();
+        return c.json({ message: "Todo created", todo }, 201);
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          return c.json({ message: "Failed to parse JSON" }, 400);
+        }
+        return c.json({ message: "Internal Server Error" }, 500);
       }
-      const titleValidationResult = titleValidation.safeParse(body.title);
-      if (!titleValidationResult.success) {
-        return c.json(
-          { message: titleValidationResult.error.errors[0].message },
-          400,
-        );
-      }
-      const statusValidationResult = statusValidation.safeParse(body.status);
-      if (!statusValidationResult.success) {
-        return c.json(
-          { message: statusValidationResult.error.errors[0].message },
-          400,
-        );
-      }
-      const todo = {
-        title: body.title,
-        id: crypto.randomUUID(),
-        status: body.status || "todo",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      const userExist = await findUser(user);
-      if (!userExist) {
-        await db.insert(usersTable).values({ user }).execute();
-      }
-      await db
-        .insert(todosTable)
-        .values({ ...todo, user })
-        .execute();
-      return c.json({ message: "Todo created", todo }, 201);
-    } catch (error) {
-      if (error instanceof SyntaxError) {
-        return c.json({ message: "Failed to parse JSON" }, 400);
-      }
-      return c.json({ message: "Internal Server Error" }, 500);
-    }
-  })
+    },
+  )
   .put(
     "/:user/todos/:id",
     zValidator("json", todoValidation, (result, c) => {

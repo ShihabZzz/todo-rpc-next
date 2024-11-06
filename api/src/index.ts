@@ -9,9 +9,6 @@ import { usersTable, todosTable } from "./db/schema";
 import {
   findUser,
   findByTodoID,
-  hasInvalidkeys,
-  titleValidation,
-  statusValidation,
   todoValidation,
   todoPostValidation,
 } from "../utils";
@@ -32,7 +29,6 @@ const app = new Hono()
       const userExist = await findUser(user);
       if (!userExist) {
         await db.insert(usersTable).values({ user }).execute();
-        // return c.json({ message: "User not found" }, 404);
       }
       const data = await db
         .select({

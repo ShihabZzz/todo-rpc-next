@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config({ path: "../.env" });
+
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
@@ -183,8 +186,14 @@ const app = new Hono()
 export type appType = typeof app;
 export default app;
 
-const port = process.env.PORT ? +process.env.PORT : 4000;
-console.log(`Server is running on port ${port}`);
+const port =
+  process.env.NEXT_PUBLIC_API_PORT &&
+  !isNaN(parseInt(process.env.NEXT_PUBLIC_API_PORT)) &&
+  parseInt(process.env.NEXT_PUBLIC_API_PORT) != 3000 &&
+  parseInt(process.env.NEXT_PUBLIC_API_PORT) > 0
+    ? parseInt(process.env.NEXT_PUBLIC_API_PORT)
+    : 7000;
+console.log(`API Server is running on port ${port}`);
 
 serve({
   fetch: app.fetch,

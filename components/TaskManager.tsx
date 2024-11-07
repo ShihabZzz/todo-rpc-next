@@ -15,7 +15,14 @@ interface Todo {
 }
 
 export default function TaskManager() {
-  const client = hc<appType>("http://localhost:4000");
+  const port =
+    process.env.NEXT_PUBLIC_API_PORT &&
+    !isNaN(parseInt(process.env.NEXT_PUBLIC_API_PORT)) &&
+    parseInt(process.env.NEXT_PUBLIC_API_PORT) != 3000 &&
+    parseInt(process.env.NEXT_PUBLIC_API_PORT) > 0
+      ? parseInt(process.env.NEXT_PUBLIC_API_PORT)
+      : 7000;
+  const client = hc<appType>(`http://localhost:${port}`);
 
   const { toast } = useToast();
   const [userInfo, setUserInfo] = useState<string | null>(null);
@@ -23,19 +30,16 @@ export default function TaskManager() {
   const [newUser, setNewUser] = useState("");
   const [todos, setTodos] = useState<Todo[]>([]);
 
-  const fetchTodos = useCallback(
-    async (user: string) => {
-      try {
-        const response = await client[":user"].todos.$get({ param: { user } });
-        if (!response.ok) throw new Error("Failed to fetch todos");
-        const data = await response.json();
-        setTodos(data);
-      } catch (error) {
-        console.error("Error fetching todos:", error);
-      }
-    },
-    [],
-  );
+  const fetchTodos = useCallback(async (user: string) => {
+    try {
+      const response = await client[":user"].todos.$get({ param: { user } });
+      if (!response.ok) throw new Error("Failed to fetch todos");
+      const data = await response.json();
+      setTodos(data);
+    } catch (error) {
+      console.error("Error fetching todos:", error);
+    }
+  }, []);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");

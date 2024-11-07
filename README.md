@@ -17,21 +17,16 @@
     npm install
     ```
 
-3. Create a .env file inside api folder of project and add your Turso database url and auth token
+3. Create a `.env` file in the project root folder with the following content:
     ```sh
+    NEXT_PUBLIC_API_PORT=
     TURSO_DATABASE_URL=
     TURSO_AUTH_TOKEN=
     ```
 
-4. Start the api server:
-    - Open a terminal (inside api folder) & run this command
+4. Start both (Hono API & Next.JS) server:
     ```sh
-    npm run dev
-    ```
-5. Start the Next.js development server:
-    - Open a terminal (inside root of the project) & run this command
-    ```sh
-    npm run dev
+    npm run dev:all
     ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, KeyboardEvent } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { hc } from "hono/client";
 import type { appType } from "@/api/src/index";
 
@@ -15,6 +17,7 @@ interface Todo {
 export default function TaskManager() {
   const client = hc<appType>("http://localhost:4000");
 
+  const { toast } = useToast();
   const [userInfo, setUserInfo] = useState<string | null>(null);
   const [task, setTask] = useState("");
   const [newUser, setNewUser] = useState("");
@@ -58,7 +61,15 @@ export default function TaskManager() {
         param: { user: userInfo },
         json: { title: task },
       });
-      if (!response.ok) throw new Error("Failed to add task");
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast({
+          variant: "destructive",
+          title: `Error! ${errorData.message || "Failed to add task"}`,
+          action: <ToastAction altText="Try again">Try again</ToastAction>,
+        });
+        return;
+      }
       fetchTodos(userInfo);
       setTask("");
     } catch (error) {

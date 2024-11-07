@@ -34,7 +34,7 @@ export default function TaskManager() {
         console.error("Error fetching todos:", error);
       }
     },
-    [client],
+    [],
   );
 
   useEffect(() => {
